@@ -166,10 +166,10 @@ table.kt{font-size:13px}table.kt th,table.kt td{padding:6px 10px}
       <div class="who"><span>Xin chào <b id="meName"></b></span><button class="btn sm" data-act="reload">Tải lại</button><button class="btn sm" data-act="logout">Thoát</button></div>
     </div>
     <nav class="tabs" role="tablist">
-      <button data-tab="today" role="tab">Cần chăm hôm nay<span class="n" id="nToday" hidden></span></button>
-      <button data-tab="weekly" role="tab">Báo cáo tuần<span class="n" id="nDaily" hidden></span></button>
-      <button data-tab="cust" role="tab">Khách hàng</button>
       <button data-tab="agent" role="tab">Khách Agent<span class="n" id="nAgent" hidden></span></button>
+      <button data-tab="weekly" role="tab">Báo cáo tuần<span class="n" id="nDaily" hidden></span></button>
+      <button data-tab="today" role="tab">Cần chăm hôm nay<span class="n" id="nToday" hidden></span></button>
+      <button data-tab="cust" role="tab">Khách hàng</button>
       <button data-tab="report" role="tab">Báo cáo</button>
     </nav>
   </div>
@@ -633,7 +633,7 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.token&&
 setInterval(()=>{if(S.token&&!document.hidden&&!$("#sheetRoot").innerHTML&&!typing())load(true)},90000);
 
 (function boot(){
-  S.tab=ls("tab")||"today";$("#l_name").value=ls("lastName")||"";$("#l_rem").checked=ls("rem")==="1";$("#l_pin").value=ls("rem")==="1"?(ls("lastPin")||""):"";
+  S.tab=ls("tab")||"agent";$("#l_name").value=ls("lastName")||"";$("#l_rem").checked=ls("rem")==="1";$("#l_pin").value=ls("rem")==="1"?(ls("lastPin")||""):"";
   const start=k=>{S.token=k||ls("tok");if(S.token){ls("tok",S.token);keep(S.token);$("#appView").hidden=false;render();load()}else showLogin("")};
   start("")
 })();
