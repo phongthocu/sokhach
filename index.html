@@ -166,7 +166,7 @@ table.kt{font-size:13px}table.kt th,table.kt td{padding:6px 10px}
       <div class="who"><span>Xin chào <b id="meName"></b></span><button class="btn sm" data-act="reload">Tải lại</button><button class="btn sm" data-act="logout">Thoát</button></div>
     </div>
     <nav class="tabs" role="tablist">
-      <button data-tab="agent" role="tab">Khách Agent<span class="n" id="nAgent" hidden></span></button>
+      <button data-tab="agent" role="tab">Số Khách Tiếp Cận<span class="n" id="nAgent" hidden></span></button>
       <button data-tab="weekly" role="tab">Báo cáo tuần<span class="n" id="nDaily" hidden></span></button>
       <button data-tab="today" role="tab">Cần chăm hôm nay<span class="n" id="nToday" hidden></span></button>
       <button data-tab="cust" role="tab">Khách hàng</button>
@@ -307,43 +307,51 @@ function viewAgent(){
 function viewAgentStaff(){
   const today=S.agToday,yest=addD(today,-1);if(S.ad!==today&&S.ad!==yest)S.ad=today;
   const r=agOf(S.ad,S.me.name);const mine=S.agReports.filter(x=>x.name===S.me.name).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,14);
-  return `<div class="row"><h2 class="grow">Báo cáo khách Agent</h2>
+  const dayLbl=S.ad===today?"hôm nay":"hôm qua";
+  return `<div class="row"><h2 class="grow">Số khách tiếp cận</h2>
     <div class="seg" role="group"><button data-ad="${today}" aria-pressed="${S.ad===today}">Hôm nay ${dm(today)}</button><button data-ad="${yest}" aria-pressed="${S.ad===yest}">Hôm qua</button></div></div>
   <form id="agf" class="box">
-    <div class="f"><label for="ag_count">Số lượng khách Agent ${S.ad===today?"hôm nay":"hôm qua"} (${dmyw(S.ad)})</label>
-    <input id="ag_count" type="number" min="0" inputmode="numeric" value="${r?r.count:""}" placeholder="0" style="font-size:22px;font-weight:600;max-width:200px"></div>
-    <div class="note">${r?"Đã gửi lúc "+esc(fmt(r.updatedAt))+". Sửa số rồi bấm Cập nhật nếu cần.":"Không có khách thì nhập 0 rồi gửi."}</div>
+    <div class="note">Số khách tiếp cận ${dayLbl} (${dmyw(S.ad)}). Không có thì nhập 0.</div>
+    <div class="row" style="gap:16px;align-items:flex-end">
+    <div class="f"><label for="ag_count">Khách Agent</label>
+    <input id="ag_count" type="number" min="0" inputmode="numeric" value="${r?r.count:""}" placeholder="0" style="font-size:22px;font-weight:600;max-width:160px"></div>
+    <div class="f"><label for="ag_other">Khách từ nguồn khác</label>
+    <input id="ag_other" type="number" min="0" inputmode="numeric" value="${r?r.other:""}" placeholder="0" style="font-size:22px;font-weight:600;max-width:160px"></div>
+    </div>
+    <div class="note">${r?"Đã gửi lúc "+esc(fmt(r.updatedAt))+" · Tổng tiếp cận: <b>"+(r.count+r.other)+"</b>. Sửa số rồi bấm Cập nhật nếu cần.":"Nhập đủ 2 ô rồi bấm Gửi báo cáo."}</div>
     <div><button class="btn primary" type="submit" id="ag_save">${r?"Cập nhật":"Gửi báo cáo"}</button></div>
   </form>
-  <section><h3>14 ngày gần đây</h3>${mine.length?`<div class="tbl"><table><thead><tr><th>Ngày</th><th>Số lượng khách</th></tr></thead><tbody>${mine.map(x=>`<tr><td>${dmyw(x.date)}</td><td>${x.count}</td></tr>`).join("")}</tbody></table></div>`:`<div class="note">Chưa gửi báo cáo nào.</div>`}</section>`
+  <section><h3>14 ngày gần đây</h3>${mine.length?`<div class="tbl"><table><thead><tr><th>Ngày</th><th>Khách Agent</th><th>Nguồn khác</th><th>Tổng</th></tr></thead><tbody>${mine.map(x=>`<tr><td>${dmyw(x.date)}</td><td>${x.count}</td><td>${x.other}</td><td><b>${x.count+x.other}</b></td></tr>`).join("")}</tbody></table></div>`:`<div class="note">Chưa gửi báo cáo nào.</div>`}</section>`
 }
 function viewAgentMgr(){
   const d=S.ad||S.agToday;const people=S.staff.filter(s=>s.active!=="Không").map(s=>s.name);
   const names=[...new Set(people.concat(S.agReports.filter(r=>r.date===d).map(r=>r.name)))];
   names.sort((a,b)=>(teamOf(a)||"~").localeCompare(teamOf(b)||"~","vi"));
-  const missing=agMissing(d);const total=names.reduce((t,n)=>t+(agOf(d,n)?agOf(d,n).count:0),0);
+  const missing=agMissing(d);const total=names.reduce((t,n)=>t+(agOf(d,n)?agOf(d,n).count:0),0);const totalO=names.reduce((t,n)=>t+(agOf(d,n)?agOf(d,n).other:0),0);
   const done=names.filter(n=>agOf(d,n)).length;
-  return `<div class="row"><h2 class="grow">Báo cáo khách Agent</h2>
+  return `<div class="row"><h2 class="grow">Số khách tiếp cận</h2>
     <button class="btn sm" data-adshift="-1">&lsaquo; Ngày trước</button><input id="ag_date" type="date" style="width:auto" value="${d}" max="${S.agToday}"><button class="btn sm" data-adshift="1" ${d>=S.agToday?"disabled":""}>Ngày sau &rsaquo;</button></div>
   <div class="stats">
-    <div class="stat"><b>${total}</b><span>Khách Agent ${dmyw(d)}</span></div>
+    <div class="stat"><b>${total+totalO}</b><span>Tổng tiếp cận ${dmyw(d)}</span></div>
+    <div class="stat"><b>${total}</b><span>Khách Agent</span></div>
+    <div class="stat"><b>${totalO}</b><span>Khách nguồn khác</span></div>
     <div class="stat"><b>${done}/${names.length}</b><span>Người đã báo</span></div>
   </div>
   ${missing.length?`<div class="row"><div class="chips grow"><span class="note">Chưa báo:</span>${missing.map(n=>`<span class="chip miss">${esc(n)}</span>`).join("")}</div><button class="btn sm" data-act="agRemind">Chép tin nhắc</button></div>`:`<div class="chips"><span class="chip">Cả phòng đã báo đủ</span></div>`}
-  <div class="row"><span class="grow"></span><button class="btn sm" data-act="copyAgent">Chép cột số lượng để dán vào Google Sheet</button></div>
-  <div class="tbl"><table><thead><tr><th>Nhân sự</th><th>Leader phụ trách</th><th>Số lượng khách</th></tr></thead><tbody>
-    ${names.map(n=>{const r=agOf(d,n);return`<tr><td>${esc(n)}</td><td>${esc(teamOf(n))}</td><td>${r?`<b>${r.count}</b>`:`<span class="late">chưa báo</span>`}</td></tr>`}).join("")}
-    <tr style="font-weight:700"><td>Tổng</td><td></td><td>${total}</td></tr>
+  <div class="row"><span class="grow"></span><button class="btn sm" data-act="copyAgent">Chép bảng số liệu để dán vào Google Sheet</button></div>
+  <div class="tbl"><table><thead><tr><th>Nhân sự</th><th>Leader phụ trách</th><th>Khách Agent</th><th>Nguồn khác</th><th>Tổng</th></tr></thead><tbody>
+    ${names.map(n=>{const r=agOf(d,n);return`<tr><td>${esc(n)}</td><td>${esc(teamOf(n))}</td>${r?`<td>${r.count}</td><td>${r.other}</td><td><b>${r.count+r.other}</b></td>`:`<td colspan="3"><span class="late">chưa báo</span></td>`}</tr>`}).join("")}
+    <tr style="font-weight:700"><td>Tổng</td><td></td><td>${total}</td><td>${totalO}</td><td>${total+totalO}</td></tr>
   </tbody></table></div>`
 }
-function agentTSV(){const d=S.ad||S.agToday;const names=[...new Set(S.staff.filter(s=>s.active!=="Không").map(s=>s.name))].sort((a,b)=>(teamOf(a)||"~").localeCompare(teamOf(b)||"~","vi"));return names.map(n=>[n,teamOf(n),agOf(d,n)?agOf(d,n).count:""].join("\t")).join("\n")}
+function agentTSV(){const d=S.ad||S.agToday;const names=[...new Set(S.staff.filter(s=>s.active!=="Không").map(s=>s.name))].sort((a,b)=>(teamOf(a)||"~").localeCompare(teamOf(b)||"~","vi"));return names.map(n=>{const r=agOf(d,n);return[n,teamOf(n),r?r.count:"",r?r.other:"",r?r.count+r.other:""].join("\t")}).join("\n")}
 async function loadAgent(){
   try{const d=await api("getAgentDaily",S.token);S.agReports=d.reports;S.agToday=d.today;if(!S.ad)S.ad=d.today;S.agLoaded=true;render()}
   catch(e){if(errMsg(e)==="AUTH")showLogin("Phiên đăng nhập đã hết, vui lòng đăng nhập lại.")}
 }
 async function saveAgentForm(){
-  const c=v("ag_count");if(c===""){toast("Nhập số lượng khách (không có thì nhập 0)");return}
-  const r=await run(()=>api("saveAgentDaily",S.token,{date:S.ad,count:c}),null,$("#ag_save"));if(!r)return;
+  const c=v("ag_count"),o=v("ag_other");if(c===""||o===""){toast("Nhập đủ 2 ô: Khách Agent và Khách từ nguồn khác (không có thì nhập 0)");return}
+  const r=await run(()=>api("saveAgentDaily",S.token,{date:S.ad,count:c,other:o}),null,$("#ag_save"));if(!r)return;
   toast(r.updated?"Đã cập nhật":"Đã gửi báo cáo");loadAgent();
 }
 
@@ -608,8 +616,8 @@ document.addEventListener("click",async e=>{
   else if(a==="new")openCustomer(null);
   else if(a==="newUnit")openUnit(null);
   else if(a==="newAgent"){S.newAgent=true;openCustomer(null)}
-  else if(a==="copyAgent"){const txt=agentTSV();try{await navigator.clipboard.writeText(txt);toast("Đã chép bảng (Nhân sự, Leader, Số lượng). Mở Google Sheet, bấm ô đầu tiên rồi Ctrl+V",5000)}catch(err){toast("Trình duyệt chặn chép tự động, hãy thử lại trên Chrome",5000)}}
-  else if(a==="agRemind"){const d=S.ad||S.agToday;const msg=`Nhắc ${agMissing(d).join(", ")}: chưa báo số lượng khách Agent ngày ${dm(d)} trên Sổ Khách O2O (tab Khách Agent).`;try{await navigator.clipboard.writeText(msg);toast("Đã chép tin nhắc, dán vào nhóm Zalo")}catch(err){toast(msg,6000)}}
+  else if(a==="copyAgent"){const txt=agentTSV();try{await navigator.clipboard.writeText(txt);toast("Đã chép bảng (Nhân sự, Leader, Agent, Nguồn khác, Tổng). Mở Google Sheet, bấm ô đầu tiên rồi Ctrl+V",5000)}catch(err){toast("Trình duyệt chặn chép tự động, hãy thử lại trên Chrome",5000)}}
+  else if(a==="agRemind"){const d=S.ad||S.agToday;const msg=`Nhắc ${agMissing(d).join(", ")}: chưa báo số khách tiếp cận ngày ${dm(d)} trên Sổ Khách O2O (tab Số Khách Tiếp Cận).`;try{await navigator.clipboard.writeText(msg);toast("Đã chép tin nhắc, dán vào nhóm Zalo")}catch(err){toast(msg,6000)}}
   else if(a==="newStaff")openStaff(null);
   else if(a==="log")addLog();
   else if(a==="wCancel"){S.wEdit=false;S.draft=null;render()}
