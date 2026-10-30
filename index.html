@@ -105,6 +105,10 @@ tr:last-child td{border-bottom:0}
 a.lnk{color:var(--accent);font-weight:600;font-size:14px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;z-index:60;font-size:14px;max-width:calc(100% - 32px)}
 .note{font-size:13px;color:var(--muted)}
+.wbn{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:14px;background:var(--accent-soft)}
+.wbn.due{background:color-mix(in srgb,var(--warm) 18%,transparent)}
+.wbn.late{background:color-mix(in srgb,var(--danger) 15%,transparent)}
+.wbn span{flex:1;min-width:200px}
 .legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}.legend>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;line-height:1.35}.legend b{display:block}.legend span{color:var(--muted)}
 .login{max-width:380px;margin:12vh auto 0;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:26px 22px;display:grid;gap:14px}
 .login .brand{font-size:24px}
@@ -484,6 +488,22 @@ async function saveWeeklyForm(){
   toast(r.updated?"Đã cập nhật báo cáo tuần":"Đã gửi báo cáo tuần");S.draft=null;S.wEdit=false;loadWeekly();
 }
 
+function weekBanner(){
+  if(!S.wLoaded||!S.me||!S.week)return"";
+  const go=`<button class="btn sm primary" data-tab="weekly">Mở Báo cáo tuần</button>`;
+  const cur=S.week,prev=addD(cur,-7),t=vnToday();
+  if(isMgr()){if(!isOpen(cur))return"";const m=teamNames().filter(x=>!repOf(cur,x));if(!m.length||S.tab==="weekly")return"";
+    return`<div class="wbn ${leftText(cur)?"due":"late"}"><span>📋 Báo cáo tuần ${wkLabel(cur)}: còn <b>${m.length} người chưa nộp</b> (${esc(m.join(", "))}).</span>${go}</div>`}
+  if(S.tab==="weekly")return"";
+  if(!repOf(prev,S.me.name)&&S.wreports.some(r=>r.name===S.me.name)&&!isOpen(cur))
+    return`<div class="wbn late"><span>⚠️ Bạn <b>chưa gửi báo cáo tuần ${wkLabel(prev)}</b> — đã quá hạn, gửi ngay (sẽ ghi Nộp muộn).</span>${go}</div>`;
+  if(repOf(cur,S.me.name))return"";
+  if(t===addD(satOf(cur),-1))return`<div class="wbn"><span>🔔 <b>Ngày mai thứ 7 (${dm(satOf(cur))})</b> là ngày gửi báo cáo hồ sơ tuần, hạn <b>trước 17h00</b>. Mỗi tuần chỉ gửi 1 lần.</span></div>`;
+  if(!isOpen(cur))return"";
+  const left=leftText(cur);
+  return left?`<div class="wbn due"><span>🔔 <b>Hôm nay hạn gửi báo cáo tuần</b> — trước 17h00, ${left}. Mỗi tuần chỉ gửi 1 lần.</span>${go}</div>`
+    :`<div class="wbn late"><span>⚠️ <b>Bạn chưa gửi báo cáo tuần ${wkLabel(cur)}</b> — đã quá hạn 17h thứ 7, gửi ngay (sẽ ghi Nộp muộn).</span>${go}</div>`;
+}
 function render(){
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===S.tab));
   const g=careGroups();const n=g.late.length+g.today.length;const nb=$("#nToday");nb.hidden=!n;nb.textContent=n;
@@ -491,7 +511,7 @@ function render(){
   if(S.wLoaded&&S.me){const miss=!dueNow()?0:isMgr()?teamNames().filter(x=>!repOf(S.week,x)).length:(repOf(S.week,S.me.name)?0:1);const nd=$("#nDaily");nd.hidden=!miss;nd.textContent=isMgr()?miss:"!"}
   if(!S.loaded){$("#app").innerHTML=emptyBox("Đang tải dữ liệu…","");return}
   const ae=document.activeElement;const focus=ae&&ae.id;let pos=null;try{pos=ae.selectionStart}catch(e){}
-  const V={today:viewToday,weekly:viewWeekly,cust:viewCust,agent:viewAgent,units:viewUnits,report:viewReport};if(!V[S.tab])S.tab="weekly";$("#app").innerHTML=V[S.tab]();
+  const V={today:viewToday,weekly:viewWeekly,cust:viewCust,agent:viewAgent,units:viewUnits,report:viewReport};if(!V[S.tab])S.tab="weekly";$("#app").innerHTML=weekBanner()+V[S.tab]();
   if(focus){const el=document.getElementById(focus);if(el&&$("#app").contains(el)){el.focus();try{if(pos!=null)el.setSelectionRange(pos,pos)}catch(e){}}}
 }
 
