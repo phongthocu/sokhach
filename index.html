@@ -367,7 +367,10 @@ const dm=ds=>{const[,m,d]=ds.split("-");return`${d}/${m}`};
 const wkLabel=w=>`${dm(w)} – ${dm(addD(w,6))}`;
 const repOf=(w,name)=>S.wreports.find(r=>r.week===w&&r.name===name);
 const teamNames=()=>S.staff.filter(s=>s.active!=="Không"&&s.role!=="Quản lý").map(s=>s.name);
-const dueNow=()=>{const g=new Date(S.today+"T12:00:00").getDay();return g===5||g===6||g===0};
+const vnToday=()=>{const d=new Date(Date.now()+7*36e5);return d.toISOString().slice(0,10)};
+const satOf=w=>addD(w,5);
+const isOpen=w=>vnToday()>=satOf(w);
+const dueNow=()=>isOpen(S.week);
 const deadline=w=>new Date(addD(w,5)+"T17:00:00+07:00");
 const dlLabel=w=>`17h00 thứ 7 (${dm(addD(w,5))})`;
 const lateTag=r=>r.late==="Muộn"?`<span class="chip miss">Nộp muộn</span>`:`<span class="chip">Đúng hạn</span>`;
@@ -413,14 +416,14 @@ function viewWeeklyStaff(){
   const cur=S.week,prev=addD(cur,-7);if(S.rw!==cur&&S.rw!==prev)S.rw=cur;
   if(!S.draft||S.draft.week!==S.rw){S.draft={...draftFor(S.rw),week:S.rw}}
   const d=S.draft,saved=repOf(S.rw,S.me.name);const mine=S.wreports.filter(x=>x.name===S.me.name).sort((a,b)=>b.week.localeCompare(a.week));
-  const editable=w=>w===cur||w===prev;
-  const hist=`<section><h3>Các tuần đã gửi (${mine.length})</h3>${mine.length?`<div class="list">${mine.map(x=>repCard(x,"Tuần "+wkLabel(x.week),editable(x.week)?`<button class="btn sm" data-wedit="${x.week}">Sửa</button>`:"")).join("")}</div>`:`<div class="note">Chưa có báo cáo nào.</div>`}</section>`;
+  const hist=`<section><h3>Các tuần đã gửi (${mine.length})</h3>${mine.length?`<div class="list">${mine.map(x=>repCard(x,"Tuần "+wkLabel(x.week))).join("")}</div>`:`<div class="note">Chưa có báo cáo nào.</div>`}</section>`;
   const head=`<div class="row"><h2 class="grow">Báo cáo hồ sơ tuần</h2>
     <div class="seg" role="group"><button data-rw="${cur}" aria-pressed="${S.rw===cur}">Tuần này ${wkLabel(cur)}</button><button data-rw="${prev}" aria-pressed="${S.rw===prev}">Tuần trước</button></div></div>
-  <div class="note">Hạn nộp: <b>trước ${dlLabel(S.rw)}</b>${leftText(S.rw)?` — <b>${leftText(S.rw)}</b>`:saved?"":` — <b style="color:#c62828">đã quá hạn, gửi bây giờ sẽ ghi Nộp muộn</b>`}. Nộp sau hạn vẫn được nhận nhưng ghi <b>Nộp muộn</b>.</div>
+  <div class="note">Báo cáo tuần <b>chỉ mở vào thứ 7</b> và <b>mỗi tuần chỉ gửi 1 lần</b> (gửi rồi không sửa được). Hạn nộp: <b>trước ${dlLabel(S.rw)}</b>${!isOpen(S.rw)?"":leftText(S.rw)?` — <b>${leftText(S.rw)}</b>`:saved?"":` — <b style="color:#c62828">đã quá hạn, gửi bây giờ sẽ ghi Nộp muộn</b>`}. Nộp sau hạn vẫn được nhận nhưng ghi <b>Nộp muộn</b>.</div>
   <div class="note">Ghi số hồ sơ <b>đang có</b> tính đến thứ 7 (không phải số mới trong tuần); cột Đã Khớp ghi tổng từ trước tới giờ.</div>`;
-  if(saved&&!S.wEdit)return head+`<div class="box"><div class="row"><b class="grow" style="color:var(--ok)">✓ Đã gửi báo cáo tuần ${wkLabel(S.rw)}</b><button class="btn primary" data-wedit="${S.rw}">Sửa báo cáo</button></div>${repCard(saved,"Tuần "+wkLabel(S.rw))}</div>`+hist;
-  const msg=saved?"Bạn đang sửa báo cáo đã gửi. Sửa xong bấm Cập nhật.":d.from==="prev"?"Số đã điền sẵn theo báo cáo tuần trước, chỉ cần sửa những khu thay đổi.":"Nhập số hồ sơ của từng khu. Khu nào không có thì để trống.";
+  if(saved)return head+`<div class="box"><div class="row"><b class="grow" style="color:var(--ok)">✓ Đã gửi báo cáo tuần ${wkLabel(S.rw)}</b></div><div class="note">Mỗi tuần chỉ gửi 1 lần. Nếu cần sửa số, báo trưởng phòng.</div>${repCard(saved,"Tuần "+wkLabel(S.rw))}</div>`+hist;
+  if(!isOpen(S.rw))return head+`<div class="box"><b>Chưa đến ngày báo cáo</b><div class="note">Báo cáo tuần ${wkLabel(S.rw)} mở vào <b>thứ 7 (${dm(satOf(S.rw))})</b>. Đến thứ 7 vào lại tab này để gửi.</div></div>`+hist;
+  const msg=d.from==="prev"?"Số đã điền sẵn theo báo cáo tuần trước, chỉ cần sửa những khu thay đổi.":"Nhập số hồ sơ của từng khu. Khu nào không có thì để trống.";
   return head+`<form id="wf" class="box">
     <div class="note">${msg}</div>
     <div class="khus">${d.items.map((it,i)=>`<div class="khu" data-row="${i}">
@@ -432,7 +435,7 @@ function viewWeeklyStaff(){
     <div class="f"><label for="w_news">Hồ sơ mới / tình hình trong tuần</label><textarea id="w_news" rows="3" placeholder="VD: Tư vấn thêm 2 khách hồ sơ mới ở R3, 1 khách hẹn bổ sung giấy xác nhận thu nhập">${esc(d.news)}</textarea></div>
     <div class="f"><label for="w_issues">Khó khăn / đề xuất</label><textarea id="w_issues" rows="2">${esc(d.issues)}</textarea></div>
     <div class="f"><label for="w_plan">Kế hoạch tuần sau</label><textarea id="w_plan" rows="2">${esc(d.plan)}</textarea></div>
-    <div class="row"><button class="btn primary" type="submit" id="w_save">${saved?"Cập nhật báo cáo":"Gửi báo cáo tuần"}</button>${saved?`<button type="button" class="btn" data-act="wCancel">Huỷ sửa</button>`:""}</div>
+    <div class="row"><button class="btn primary" type="submit" id="w_save">Gửi báo cáo tuần</button><span class="note">Kiểm tra kỹ trước khi gửi — gửi rồi không sửa được.</span></div>
   </form>`+hist
 }
 function viewWeeklyMgr(){
@@ -472,8 +475,11 @@ async function loadWeekly(){
 }
 async function saveWeeklyForm(){
   readDraft();const d=S.draft;
+  if(repOf(S.rw,S.me.name)){toast("Tuần này bạn đã gửi báo cáo rồi, mỗi tuần chỉ gửi 1 lần");return}
+  if(!isOpen(S.rw)){toast("Báo cáo tuần chỉ mở vào thứ 7");return}
   const items=d.items.map(it=>({...it,thu:+it.thu||0,p90:+it.p90||0,du:+it.du||0,nop:+it.nop||0})).filter(it=>it.khu&&(it.thu||it.p90||it.du||it.nop||it.note));
   if(!items.length&&!d.news.trim()){toast("Nhập số hồ sơ ít nhất một khu, hoặc ghi tình hình trong tuần");return}
+  if(!confirm("Mỗi tuần chỉ gửi 1 lần, gửi rồi không sửa được. Gửi báo cáo tuần "+wkLabel(S.rw)+"?"))return;
   const r=await run(()=>api("saveWeekly",S.token,{week:S.rw,items,news:d.news,issues:d.issues,plan:d.plan}),null,$("#w_save"));if(!r)return;
   toast(r.updated?"Đã cập nhật báo cáo tuần":"Đã gửi báo cáo tuần");S.draft=null;S.wEdit=false;loadWeekly();
 }
@@ -607,7 +613,6 @@ document.addEventListener("click",async e=>{
   if(t.dataset.unit){openUnit(t.dataset.unit);return}
   if(t.dataset.staff){openStaff(+t.dataset.staff);return}
   if(t.dataset.rw){readDraft();S.rw=t.dataset.rw;S.wEdit=false;render();return}
-  if(t.dataset.wedit){S.rw=t.dataset.wedit;S.wEdit=true;S.draft=null;render();window.scrollTo(0,0);return}
   if(t.dataset.rwshift){const nw=addD(S.rw||S.week,+t.dataset.rwshift);if(nw<=S.week){S.rw=nw;render()}return}
   if(t.dataset.copy){const p=t.dataset.copy;try{await navigator.clipboard.writeText(p);toast("Đã chép "+p)}catch(err){toast("Giữ tay lên số "+p+" để chép")}return}
   if(t.dataset.in){const el=$("#c_next");if(t.dataset.in==="0"){el.value="";$("#c_nextNote").value=""}else{const d=new Date();d.setDate(d.getDate()+ +t.dataset.in);d.setHours(9,0,0,0);el.value=toInput(d)}return}
