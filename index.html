@@ -689,6 +689,14 @@ document.addEventListener("change",e=>{const id=e.target.id;if(id==="c_source"){
 const typing=()=>(S.tab==="weekly"||S.tab==="agent")&&!isMgr();
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.token&&!typing())load(true)});
 setInterval(()=>{if(S.token&&!document.hidden&&!$("#sheetRoot").innerHTML&&!typing())load(true)},90000);
+/* Tự cập nhật phiên bản mới: khi có bản mới trên GitHub, app tự tải lại (không cần nhân viên làm gì) */
+const APP_VER="20261104b";
+async function checkVer(){try{const ae=document.activeElement;if(ae&&/INPUT|TEXTAREA|SELECT/.test(ae.tagName))return;
+  const j=await fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json());
+  if(j&&j.v&&j.v!==APP_VER){const k="upd_"+j.v;let n=0;try{n=+sessionStorage.getItem(k)||0;sessionStorage.setItem(k,n+1)}catch(e){}if(n<2)location.replace(location.pathname+"?v="+j.v)}}catch(e){}}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)checkVer()});
+setInterval(()=>{if(!document.hidden)checkVer()},300000);
+checkVer();
 
 (function boot(){
   S.tab=ls("tab")||"agent";$("#l_name").value=ls("lastName")||"";$("#l_rem").checked=ls("rem")==="1";$("#l_pin").value=ls("rem")==="1"?(ls("lastPin")||""):"";
