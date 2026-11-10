@@ -98,6 +98,7 @@ tr:last-child td{border-bottom:0}
 .box{border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:10px}
 .agf{display:grid;gap:12px}.agrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.agrow input{max-width:200px}
 table th.gs,table td.gs{border-left:2px solid var(--line)}
+td.agwork{white-space:pre-wrap;min-width:220px;max-width:420px;text-align:left}
 .box.next{background:var(--accent-soft);border-color:transparent}
 .log{display:grid;gap:8px;font-size:14px}
 .log div{border-left:2px solid var(--line);padding-left:10px}
@@ -305,7 +306,7 @@ const tagInfo=t=>{const i=TAG_NAMES.indexOf(t);return i<0?{i:-1,days:0,hint:"Ch�
 const PL=[["QT","Đang quan tâm, cần chăm sóc","Quan tâm"],["Net","Nét – đang hướng dẫn làm hồ sơ","Nét"],["KNC","Không có nhu cầu","Không NC"]];
 const AG_GRP=[{k:"a",cnt:"count",title:"A. Lead đổ về nhận trên Agent",cntLbl:"Số lượng lead đổ về",plLbl:"Phân loại lead sau tiếp cận"},
   {k:"o",cnt:"other",title:"B. Khách tiếp cận ngoài kênh Agent",cntLbl:"Số lượng khách tiếp cận",plLbl:"Phân loại khách sau tiếp cận"}];
-const AG_NUM=["count","other"].concat(...AG_GRP.map(g=>PL.map(p=>g.k+p[0]).concat(g.k+"HS")));
+const AG_NUM=["count","other"].concat(...AG_GRP.map(g=>PL.map(p=>g.k+p[0])));
 const agOf=(d,n)=>S.agReports.find(r=>r.date===d&&r.name===n);
 const teamOf=n=>{const s=S.staff.find(x=>x.name===n);return s?s.team||"":""};
 const dmyw=ds=>{const w=["CN","T2","T3","T4","T5","T6","T7"][new Date(ds+"T12:00:00").getDay()];return`${w} ${dm(ds)}`};
@@ -313,9 +314,9 @@ const monOf=ds=>{const w=new Date(ds+"T12:00:00").getDay();return addD(ds,-((w+6
 function agMissing(d){return S.staff.filter(s=>s.active!=="Không"&&s.role!=="Quản lý").map(s=>s.name).filter(n=>!agOf(d,n))}
 function agSum(list){const o={};AG_NUM.forEach(k=>o[k]=list.reduce((t,r)=>t+(Number(r[k])||0),0));return o}
 const agTot=(r,g)=>PL.reduce((t,p)=>t+(Number(r[g.k+p[0]])||0),0);
-const agCells=r=>AG_GRP.map(g=>`<td class="gs"><b>${r[g.cnt]}</b></td>${PL.map(p=>`<td>${r[g.k+p[0]]}</td>`).join("")}<td>${agTot(r,g)}</td><td>${r[g.k+"HS"]}</td>`).join("");
-const agHead=first=>`<thead><tr>${first}${AG_GRP.map(g=>`<th colspan="6" class="gs">${esc(g.title)}</th>`).join("")}</tr>
-  <tr>${AG_GRP.map(g=>`<th class="gs">${g.k==="a"?"Lead đổ về":"Tiếp cận"}</th>${PL.map(p=>`<th title="${esc(p[1])}">${esc(p[2])}</th>`).join("")}<th>Tổng PL</th><th>Làm hồ sơ</th>`).join("")}</tr></thead>`;
+const agCells=(r,work)=>AG_GRP.map(g=>`<td class="gs"><b>${r[g.cnt]}</b></td>${PL.map(p=>`<td>${r[g.k+p[0]]}</td>`).join("")}<td>${agTot(r,g)}</td>`).join("")+(work?`<td class="gs agwork">${esc(r.work||"")}</td>`:"");
+const agHead=(first,work)=>`<thead><tr>${first}${AG_GRP.map(g=>`<th colspan="5" class="gs">${esc(g.title)}</th>`).join("")}${work?'<th rowspan="2" class="gs">Công việc trong ngày</th>':""}</tr>
+  <tr>${AG_GRP.map(g=>`<th class="gs">${g.k==="a"?"Lead đổ về":"Tiếp cận"}</th>${PL.map(p=>`<th title="${esc(p[1])}">${esc(p[2])}</th>`).join("")}<th>Tổng PL</th>`).join("")}</tr></thead>`;
 function viewAgent(){
   if(!S.agLoaded)return emptyBox("Đang tải…","");
   return isMgr()?viewAgentMgr():viewAgentStaff()
@@ -329,18 +330,19 @@ function viewAgentStaff(){
   return `<div class="row"><h2 class="grow">Số khách tiếp cận</h2>
     <div class="seg" role="group"><button data-ad="${today}" aria-pressed="${S.ad===today}">Hôm nay ${dm(today)}</button><button data-ad="${yest}" aria-pressed="${S.ad===yest}">Hôm qua</button></div></div>
   <form id="agf" class="agf">
-    <div class="note">Báo cáo ${dayLbl} (${dmyw(S.ad)}). Ô số lượng bắt buộc, không có thì nhập 0. Ô phân loại và làm hồ sơ để trống được hiểu là 0.</div>
+    <div class="note">Báo cáo ${dayLbl} (${dmyw(S.ad)}). Ô số lượng bắt buộc, không có thì nhập 0. Ô phân loại để trống được hiểu là 0.</div>
     ${AG_GRP.map(g=>`<div class="box"><h3 style="margin:0">${esc(g.title)}</h3>
       <div class="agrow">${agNumIn("ag_"+g.cnt,g.cntLbl,r?r[g.cnt]:"",true)}</div>
       <div class="note" style="font-weight:600">${esc(g.plLbl)}</div>
       <div class="agrow">${PL.map(p=>agNumIn("ag_"+g.k+p[0],p[1],r?r[g.k+p[0]]:"")).join("")}</div>
-      <div class="agrow">${agNumIn("ag_"+g.k+"HS","Số lượng khách làm hồ sơ",r?r[g.k+"HS"]:"")}</div>
     </div>`).join("")}
+    <div class="box"><h3 style="margin:0"><label for="ag_work">Công việc trong ngày</label></h3>
+      <textarea id="ag_work" rows="4" maxlength="3000" placeholder="VD: Gọi 15 khách Agent, hẹn 2 khách xem nhà mẫu Tràng Cát, hướng dẫn chị Hoa bổ sung giấy xác nhận thu nhập">${esc(r&&r.work||"")}</textarea></div>
     <div class="note">${r?"Đã gửi lúc "+esc(fmt(r.updatedAt))+". Sửa số rồi bấm Cập nhật nếu cần.":"Nhập xong bấm Gửi báo cáo."}</div>
     <div><button class="btn primary" type="submit" id="ag_save">${r?"Cập nhật":"Gửi báo cáo"}</button></div>
   </form>
   <section><h3>Cộng dồn tuần này (từ ${dm(wk)})</h3><div class="tbl"><table>${agHead('<th rowspan="2"></th>')}<tbody><tr><td>Tuần này</td>${agCells(ws)}</tr></tbody></table></div></section>
-  <section><h3>14 ngày gần đây</h3>${mine.length?`<div class="tbl"><table>${agHead('<th rowspan="2">Ngày</th>')}<tbody>${mine.map(x=>`<tr><td>${dmyw(x.date)}</td>${agCells(x)}</tr>`).join("")}</tbody></table></div>`:`<div class="note">Chưa gửi báo cáo nào.</div>`}</section>`
+  <section><h3>14 ngày gần đây</h3>${mine.length?`<div class="tbl"><table>${agHead('<th rowspan="2">Ngày</th>',true)}<tbody>${mine.map(x=>`<tr><td>${dmyw(x.date)}</td>${agCells(x,true)}</tr>`).join("")}</tbody></table></div>`:`<div class="note">Chưa gửi báo cáo nào.</div>`}</section>`
 }
 function viewAgentMgr(){
   const d=S.ad||S.agToday,wk=S.agMode==="w";const mon=monOf(d),sun=addD(mon,6);
@@ -348,7 +350,7 @@ function viewAgentMgr(){
   const inRange=r=>wk?r.date>=mon&&r.date<=sun:r.date===d;
   const names=[...new Set(people.concat(S.agReports.filter(inRange).map(r=>r.name)))];
   names.sort((a,b)=>(teamOf(a)||"~").localeCompare(teamOf(b)||"~","vi"));
-  const rowOf=n=>{const l=S.agReports.filter(r=>r.name===n&&inRange(r));return l.length?agSum(l):null};
+  const rowOf=n=>{const l=S.agReports.filter(r=>r.name===n&&inRange(r));return l.length?Object.assign(agSum(l),{work:l.map(x=>x.work||"").filter(Boolean).join("\n")}):null};
   const all=agSum(S.agReports.filter(inRange));
   const missing=agMissing(d);const done=names.filter(n=>agOf(d,n)).length;
   const nav=wk?`<button class="btn sm" data-adshift="-7">&lsaquo; Tuần trước</button><span class="note">${dm(mon)} – ${dm(sun)}</span><button class="btn sm" data-adshift="7" ${sun>=S.agToday?"disabled":""}>Tuần sau &rsaquo;</button>`
@@ -360,14 +362,13 @@ function viewAgentMgr(){
     <div class="stat"><b>${all.count}</b><span>Lead Agent ${wk?"cả tuần":dmyw(d)}</span></div>
     <div class="stat"><b>${all.other}</b><span>Khách ngoài Agent</span></div>
     <div class="stat"><b>${all.aNet+all.oNet}</b><span>Khách nét</span></div>
-    <div class="stat"><b>${all.aHS+all.oHS}</b><span>Khách làm hồ sơ</span></div>
     ${wk?"":`<div class="stat"><b>${done}/${names.length}</b><span>Người đã báo</span></div>`}
   </div>
   ${wk?"":missing.length?`<div class="row"><div class="chips grow"><span class="note">Chưa báo:</span>${missing.map(n=>`<span class="chip miss">${esc(n)}</span>`).join("")}</div><button class="btn sm" data-act="agRemind">Chép tin nhắc</button></div>`:`<div class="chips"><span class="chip">Cả phòng đã báo đủ</span></div>`}
-  <div class="note">Số liệu tự chuyển sang Google Sheet "PKD Happyhome báo cáo ngày" mỗi tối (khoảng 19h45): số lượng vào cột ngày, phân loại và làm hồ sơ cộng dồn cả tuần.</div>
-  <div class="tbl"><table>${agHead('<th rowspan="2">Nhân sự</th><th rowspan="2">Leader phụ trách</th>')}<tbody>
-    ${names.map(n=>{const r=rowOf(n);return`<tr><td>${esc(n)}</td><td>${esc(teamOf(n))}</td>${r?agCells(r):`<td colspan="12"><span class="late">${wk?"chưa có số":"chưa báo"}</span></td>`}</tr>`}).join("")}
-    <tr style="font-weight:700"><td>Tổng</td><td></td>${agCells(all)}</tr>
+  <div class="note">Số liệu tự chuyển sang Google Sheet "PKD Happyhome báo cáo ngày" mỗi tối (khoảng 19h45): số lượng vào cột ngày, phân loại cộng dồn cả tuần. Công việc trong ngày chỉ xem trên Sổ Khách.</div>
+  <div class="tbl"><table>${agHead('<th rowspan="2">Nhân sự</th><th rowspan="2">Leader phụ trách</th>',!wk)}<tbody>
+    ${names.map(n=>{const r=rowOf(n);return`<tr><td>${esc(n)}</td><td>${esc(teamOf(n))}</td>${r?agCells(r,!wk):`<td colspan="${wk?10:11}"><span class="late">${wk?"chưa có số":"chưa báo"}</span></td>`}</tr>`}).join("")}
+    <tr style="font-weight:700"><td>Tổng</td><td></td>${agCells(all)}${wk?"":"<td class=\"gs\"></td>"}</tr>
   </tbody></table></div>`
 }
 function agentTSV(){const d=S.ad||S.agToday;const names=[...new Set(S.staff.filter(s=>s.active!=="Không").map(s=>s.name))].sort((a,b)=>(teamOf(a)||"~").localeCompare(teamOf(b)||"~","vi"));return names.map(n=>{const r=agOf(d,n);return[n,teamOf(n),r?r.count:"",r?r.other:"",r?r.count+r.other:""].join("\t")}).join("\n")}
@@ -379,6 +380,7 @@ async function saveAgentForm(){
   const o={date:S.ad};AG_NUM.forEach(k=>o[k]=v("ag_"+k));
   if(o.count===""||o.other===""){toast("Nhập đủ 2 ô số lượng: lead Agent và khách ngoài Agent (không có thì nhập 0)",4000);return}
   AG_NUM.forEach(k=>{if(o[k]==="")o[k]=0});
+  o.work=($("#ag_work")||{}).value||"";
   const r=await run(()=>api("saveAgentDaily",S.token,o),null,$("#ag_save"));if(!r)return;
   toast(r.updated?"Đã cập nhật":"Đã gửi báo cáo");loadAgent();
 }
@@ -690,7 +692,7 @@ const typing=()=>(S.tab==="weekly"||S.tab==="agent")&&!isMgr();
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.token&&!typing())load(true)});
 setInterval(()=>{if(S.token&&!document.hidden&&!$("#sheetRoot").innerHTML&&!typing())load(true)},90000);
 /* Tự cập nhật phiên bản mới: khi có bản mới trên GitHub, app tự tải lại (không cần nhân viên làm gì) */
-const APP_VER="20261104b";
+const APP_VER="20261110a";
 async function checkVer(){try{const ae=document.activeElement;if(ae&&/INPUT|TEXTAREA|SELECT/.test(ae.tagName))return;
   const j=await fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json());
   if(j&&j.v&&j.v!==APP_VER){const k="upd_"+j.v;let n=0;try{n=+sessionStorage.getItem(k)||0;sessionStorage.setItem(k,n+1)}catch(e){}if(n<2)location.replace(location.pathname+"?v="+j.v)}}catch(e){}}
