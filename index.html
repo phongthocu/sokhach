@@ -91,6 +91,12 @@ th{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;le
 tr:last-child td{border-bottom:0}
 .tbl td:first-child,.tbl thead tr:first-child th:first-child{position:sticky;left:0;z-index:2;background:var(--surface);box-shadow:inset -1px 0 0 var(--line),4px 0 6px -4px rgba(0,0,0,.18)}
 .tbl thead tr:first-child th:first-child{z-index:3}
+.tbl.hasbar{scrollbar-width:none}.tbl.hasbar::-webkit-scrollbar{display:none}
+.sbar{position:sticky;bottom:0;z-index:15;height:18px;margin-top:4px;padding:4px 0 calc(4px + env(safe-area-inset-bottom,0px));background:var(--bg);touch-action:none;cursor:pointer}
+.sbar[hidden]{display:none}
+.sbar b{display:block;position:relative;height:10px;border-radius:999px;background:var(--line)}
+.sbar i{position:absolute;top:0;bottom:0;left:0;border-radius:999px;background:var(--accent);opacity:.85;cursor:grab;min-width:36px}
+.sbar i:active{cursor:grabbing;opacity:1}
 .scrim{position:fixed;inset:0;background:rgba(5,15,12,.45);z-index:40}
 .sheet{position:fixed;z-index:50;top:0;right:0;bottom:0;width:min(480px,100%);background:var(--surface);box-shadow:var(--shadow);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 .sheet-h{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
@@ -694,7 +700,7 @@ const typing=()=>(S.tab==="weekly"||S.tab==="agent")&&!isMgr();
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.token&&!typing())load(true)});
 setInterval(()=>{if(S.token&&!document.hidden&&!$("#sheetRoot").innerHTML&&!typing())load(true)},90000);
 /* Tự cập nhật phiên bản mới: khi có bản mới trên GitHub, app tự tải lại (không cần nhân viên làm gì) */
-const APP_VER="20261110b";
+const APP_VER="20261110c";
 async function checkVer(){try{const ae=document.activeElement;if(ae&&/INPUT|TEXTAREA|SELECT/.test(ae.tagName))return;
   const j=await fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json());
   if(j&&j.v&&j.v!==APP_VER){const k="upd_"+j.v;let n=0;try{n=+sessionStorage.getItem(k)||0;sessionStorage.setItem(k,n+1)}catch(e){}if(n<2)location.replace(location.pathname+"?v="+j.v)}}catch(e){}}
@@ -706,6 +712,27 @@ checkVer();
   S.tab=ls("tab")||"agent";$("#l_name").value=ls("lastName")||"";$("#l_rem").checked=ls("rem")==="1";$("#l_pin").value=ls("rem")==="1"?(ls("lastPin")||""):"";
   const start=k=>{S.token=k||ls("tok");if(S.token){ls("tok",S.token);keep(S.token);$("#appView").hidden=false;render();load()}else showLogin("")};
   start("")
+})();
+/* Thanh kéo ngang luôn hiện ở đáy màn hình cho các bảng rộng */
+(function(){
+  const sync=(t,bar)=>{const tr=bar.firstChild,th=tr.firstChild,max=t.scrollWidth-t.clientWidth;
+    if(max<=1){bar.hidden=true;t.classList.remove("hasbar");return}
+    bar.hidden=false;t.classList.add("hasbar");const W=tr.clientWidth,w=Math.max(36,W*t.clientWidth/t.scrollWidth);
+    th.style.width=w+"px";th.style.left=((W-w)*t.scrollLeft/max)+"px"};
+  const attach=t=>{if(t._sb)return;const bar=document.createElement("div");bar.className="sbar";bar.innerHTML="<b><i></i></b>";t.after(bar);t._sb=bar;
+    const tr=bar.firstChild,th=tr.firstChild,go=x=>{const r=tr.getBoundingClientRect(),w=th.offsetWidth,max=t.scrollWidth-t.clientWidth;t.scrollLeft=Math.min(1,Math.max(0,(x-r.left-w/2)/(r.width-w||1)))*max};
+    let drag=null;
+    bar.addEventListener("pointerdown",e=>{e.preventDefault();bar.setPointerCapture(e.pointerId);
+      if(e.target===th){drag={x:e.clientX,s:t.scrollLeft}}else{drag=null;go(e.clientX)}});
+    bar.addEventListener("pointermove",e=>{if(!bar.hasPointerCapture(e.pointerId))return;
+      if(drag){const W=tr.clientWidth-th.offsetWidth,max=t.scrollWidth-t.clientWidth;t.scrollLeft=drag.s+(e.clientX-drag.x)*max/(W||1)}else go(e.clientX)});
+    bar.addEventListener("pointerup",()=>{drag=null});
+    t.addEventListener("scroll",()=>sync(t,bar),{passive:true});
+    sync(t,bar)};
+  const scan=()=>{document.querySelectorAll(".tbl").forEach(t=>{attach(t);sync(t,t._sb)})};
+  let q=0;const later=()=>{if(q)return;q=requestAnimationFrame(()=>{q=0;scan()})};
+  new MutationObserver(later).observe(document.body,{childList:true,subtree:true});
+  addEventListener("resize",later);scan();
 })();
 </script>
 </body>
