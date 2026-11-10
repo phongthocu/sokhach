@@ -89,6 +89,8 @@ th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:right;whi
 th:first-child,td:first-child{text-align:left}
 th{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
 tr:last-child td{border-bottom:0}
+.tbl td:first-child,.tbl thead tr:first-child th:first-child{position:sticky;left:0;z-index:2;background:var(--surface);box-shadow:inset -1px 0 0 var(--line),4px 0 6px -4px rgba(0,0,0,.18)}
+.tbl thead tr:first-child th:first-child{z-index:3}
 .scrim{position:fixed;inset:0;background:rgba(5,15,12,.45);z-index:40}
 .sheet{position:fixed;z-index:50;top:0;right:0;bottom:0;width:min(480px,100%);background:var(--surface);box-shadow:var(--shadow);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 .sheet-h{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
@@ -692,7 +694,7 @@ const typing=()=>(S.tab==="weekly"||S.tab==="agent")&&!isMgr();
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.token&&!typing())load(true)});
 setInterval(()=>{if(S.token&&!document.hidden&&!$("#sheetRoot").innerHTML&&!typing())load(true)},90000);
 /* Tự cập nhật phiên bản mới: khi có bản mới trên GitHub, app tự tải lại (không cần nhân viên làm gì) */
-const APP_VER="20261110a";
+const APP_VER="20261110b";
 async function checkVer(){try{const ae=document.activeElement;if(ae&&/INPUT|TEXTAREA|SELECT/.test(ae.tagName))return;
   const j=await fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json());
   if(j&&j.v&&j.v!==APP_VER){const k="upd_"+j.v;let n=0;try{n=+sessionStorage.getItem(k)||0;sessionStorage.setItem(k,n+1)}catch(e){}if(n<2)location.replace(location.pathname+"?v="+j.v)}}catch(e){}}
